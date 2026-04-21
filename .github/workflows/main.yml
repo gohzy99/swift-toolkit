@@ -1,0 +1,40 @@
+name: Build iOS App
+on:
+  workflow_dispatch: # 允许手动点击按钮开始打包
+
+jobs:
+  build:
+    runs-on: macos-14 # 使用 GitHub 提供的最新 Mac 虚拟环境
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.3'
+
+      - name: Build Archive
+        run: |
+          # 这一步是让云端 Mac 编译代码并打包成 xcarchive
+          xcodebuild archive \
+            -project TestApp/TestApp.xcodeproj \
+            -scheme TestApp \
+            -configuration Release \
+            -archivePath ./build/TestApp.xcarchive \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Create IPA Folder
+        run: |
+          # 把编译好的 App 提取出来并放入指定文件夹，准备压成 IPA 格式
+          mkdir -p Payload
+          cp -r ./build/TestApp.xcarchive/Products/Applications/TestApp.app ./Payload/
+          zip -r TestApp.ipa Payload
+          
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyLocalReader-Unsigned
+          path: TestApp.ipa
