@@ -1,10 +1,10 @@
 name: Build iOS App
 on:
-  workflow_dispatch: # 允许手动点击按钮开始打包
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-14 # 使用 GitHub 提供的最新 Mac 虚拟环境
+    runs-on: macos-14
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -16,10 +16,13 @@ jobs:
 
       - name: Build Archive
         run: |
-          # 这一步是让云端 Mac 编译代码并打包成 xcarchive
+          # 自动定位 TestApp.xcodeproj 的位置并编译
+          PROJECT_PATH=$(find . -name "TestApp.xcodeproj" | head -n 1)
+          SCHEME_NAME="TestApp"
+          
           xcodebuild archive \
-            -project TestApp/TestApp.xcodeproj \
-            -scheme TestApp \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME_NAME" \
             -configuration Release \
             -archivePath ./build/TestApp.xcarchive \
             -sdk iphoneos \
@@ -28,9 +31,9 @@ jobs:
 
       - name: Create IPA Folder
         run: |
-          # 把编译好的 App 提取出来并放入指定文件夹，准备压成 IPA 格式
           mkdir -p Payload
-          cp -r ./build/TestApp.xcarchive/Products/Applications/TestApp.app ./Payload/
+          # 拷贝编译好的 .app 文件
+          cp -r ./build/TestApp.xcarchive/Products/Applications/*.app ./Payload/
           zip -r TestApp.ipa Payload
           
       - name: Upload IPA
